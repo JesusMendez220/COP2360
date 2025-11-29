@@ -1,0 +1,202 @@
+using System;
+using System.Collections.Generic;
+
+namespace ContractorsApp
+{
+    // Base Contractor class
+    public class Contractor
+    {
+        // Fields (backing)
+        private string _name;
+        private int _number;
+        private DateTime _startDate;
+
+        // Properties (accessors / mutators)
+        public string Name
+        {
+            get => _name;
+            set => _name = value ?? string.Empty;
+        }
+
+        public int Number
+        {
+            get => _number;
+            set => _number = value;
+        }
+
+        public DateTime StartDate
+        {
+            get => _startDate;
+            set => _startDate = value;
+        }
+
+        // Constructors
+        public Contractor()
+        {
+            _name = string.Empty;
+            _number = 0;
+            _startDate = DateTime.MinValue;
+        }
+
+        public Contractor(string name, int number, DateTime startDate)
+        {
+            _name = name ?? string.Empty;
+            _number = number;
+            _startDate = startDate;
+        }
+
+        public override string ToString()
+        {
+            return $"Name: {Name}, Number: {Number}, Start Date: {StartDate:d}";
+        }
+    }
+
+    // Derived Subcontractor class
+    public class Subcontractor : Contractor
+    {
+        // Shift: 1 = day, 2 = night
+        private int _shift;
+        private double _hourlyPayRate;
+
+        public int Shift
+        {
+            get => _shift;
+            set
+            {
+                if (value != 1 && value != 2) throw new ArgumentOutOfRangeException(nameof(Shift), "Shift must be 1 (day) or 2 (night).");
+                _shift = value;
+            }
+        }
+
+        public double HourlyPayRate
+        {
+            get => _hourlyPayRate;
+            set
+            {
+                if (value < 0) throw new ArgumentOutOfRangeException(nameof(HourlyPayRate), "Hourly pay rate cannot be negative.");
+                _hourlyPayRate = value;
+            }
+        }
+
+        // Constructors
+        public Subcontractor() : base()
+        {
+            _shift = 1;
+            _hourlyPayRate = 0.0;
+        }
+
+        public Subcontractor(string name, int number, DateTime startDate, int shift, double hourlyPayRate)
+            : base(name, number, startDate)
+        {
+            Shift = shift; // uses property for validation
+            HourlyPayRate = hourlyPayRate;
+        }
+
+        // Compute pay. Applies 3% differential for night shift (shift == 2).
+        // Returns a float as requested.
+        public float ComputePay(float hoursWorked)
+        {
+            if (hoursWorked < 0) throw new ArgumentOutOfRangeException(nameof(hoursWorked), "Hours worked cannot be negative.");
+            double rate = HourlyPayRate;
+            if (Shift == 2)
+            {
+                rate *= 1.03; // 3% differential
+            }
+
+            double pay = rate * hoursWorked;
+            return (float)pay;
+        }
+
+        public override string ToString()
+        {
+            string shiftName = Shift == 1 ? "Day" : "Night";
+            return base.ToString() + $", Shift: {shiftName} ({Shift}), Hourly Rate: {HourlyPayRate:C}";
+        }
+    }
+
+    // Demo console program
+    class Program
+    {
+        static void Main()
+        {
+            var subcontractors = new List<Subcontractor>();
+            Console.WriteLine("Subcontractor Entry Program");
+
+            while (true)
+            {
+                Console.WriteLine("\nEnter subcontractor details.");
+
+                Console.Write("Name: ");
+                string name = Console.ReadLine() ?? string.Empty;
+
+                int number = ReadInt("Contractor number: ");
+
+                DateTime startDate = ReadDate("Start date (YYYY-MM-DD): ");
+
+                int shift;
+                while (true)
+                {
+                    shift = ReadInt("Shift (1 = Day, 2 = Night): ");
+                    if (shift == 1 || shift == 2) break;
+                    Console.WriteLine("Invalid shift. Enter 1 or 2.");
+                }
+
+                double hourlyRate = ReadDouble("Hourly pay rate: ");
+
+                var sc = new Subcontractor(name, number, startDate, shift, hourlyRate);
+                subcontractors.Add(sc);
+
+                Console.Write("Enter hours worked for this subcontractor to compute pay now (or press Enter to skip): ");
+                string hoursInput = Console.ReadLine();
+                if (!string.IsNullOrWhiteSpace(hoursInput) && float.TryParse(hoursInput, out float hours))
+                {
+                    float pay = sc.ComputePay(hours);
+                    Console.WriteLine($"Computed pay for {hours} hours: {pay:C}");
+                }
+
+                Console.Write("Add another subcontractor? (y/n): ");
+                string cont = Console.ReadLine()?.Trim().ToLowerInvariant() ?? "n";
+                if (cont != "y") break;
+            }
+
+            Console.WriteLine("\nAll subcontractors entered:");
+            foreach (var s in subcontractors)
+            {
+                Console.WriteLine(s.ToString());
+            }
+
+            Console.WriteLine("\nPress any key to exit.");
+            Console.ReadKey();
+        }
+
+        static int ReadInt(string prompt)
+        {
+            while (true)
+            {
+                Console.Write(prompt);
+                if (int.TryParse(Console.ReadLine(), out int v)) return v;
+                Console.WriteLine("Invalid integer. Try again.");
+            }
+        }
+
+        static double ReadDouble(string prompt)
+        {
+            while (true)
+            {
+                Console.Write(prompt);
+                if (double.TryParse(Console.ReadLine(), out double v)) return v;
+                Console.WriteLine("Invalid number. Try again.");
+            }
+        }
+
+        static DateTime ReadDate(string prompt)
+        {
+            while (true)
+            {
+                Console.Write(prompt);
+                if (DateTime.TryParse(Console.ReadLine(), out DateTime d)) return d;
+                Console.WriteLine("Invalid date. Use format YYYY-MM-DD or equivalent.");
+            }
+        }
+    }
+}
